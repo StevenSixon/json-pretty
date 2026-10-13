@@ -19,6 +19,9 @@ private final class CopyOnDoubleClickTextView: NSTextView {
 }
 
 /// 右侧结果区：只读，双击复制全部内容。
+/// 性能配置（基准实测）：不换行 + 横向滚动 + 非连续惰性布局。
+/// 单行 10MB 文本一次性字形生成 ~1s；多行 18MB 首屏 ~0.03s。
+/// （换行模式下，单段落折成数万行 line fragment，排版需 ~20s，禁用。）
 struct ResultView: NSViewRepresentable {
     let text: String
     var onCopy: (() -> Void)?
@@ -42,6 +45,7 @@ struct ResultView: NSViewRepresentable {
         textView.textContainer?.widthTracksTextView = false
         textView.textContainer?.containerSize = NSSize(width: CGFloat.greatestFiniteMagnitude,
                                                        height: CGFloat.greatestFiniteMagnitude)
+        textView.layoutManager?.allowsNonContiguousLayout = true
         textView.autoresizingMask = [.width]
 
         scrollView.documentView = textView

@@ -13,43 +13,26 @@ struct HistoryEntry: Codable, Identifiable, Equatable {
     }
 }
 
-/// 历史持久化：环形保留最近 10 条，JSON 原子写入 Application Support。
-final class HistoryStore {
+/// 历史记录编解码与持久化文件位置。所有方法为同步实现，
+/// 调用方须在后台线程执行（条目可能达 10MB 级，主线程 I/O 会卡 UI）。
+enum HistoryStore {
     static let capacity = 10
 
-    private(set) var entries: [HistoryEntry] = []
-    private let fileURL: URL
-
-    init(fileManager: FileManager = .default) {
-        let dir = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+    static var fileURL: URL {
+        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("JSONPretty", isDirectory: true)
-        try? fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
-        fileURL = dir.appendingPathComponent("history.json")
-        load()
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir.appendingPathComponent("history.json")
     }
 
-    func push(_ tab: JSONTab) {
-        let entry = HistoryEntry(input: tab.input, mode: tab.mode, savedAt: Date())
-        entries.insert(entry, at: 0)
-        if entries.count > Self.capacity {
-            entries = Array(entries.prefix(Self.capacity))
-        }
-        save()
-    }
-
-    func clear() {
-        entries = []
-        save()
-    }
-
-    private func load() {
-        guard let data = try? Data(contentsOf: fileURL) else { return }
+    static func load() -> [HistoryEntry] {
+        guard let data = try? Data(contentsOf: fileURL) else { return [] }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        entries = (try? decoder.decode([HistoryEntry].self, from: data)) ?? []
+        return (try? decoder.decode([HistoryEntry].self, from: data)) ?? []
     }
 
-    private func save() {
+    static func save(_ entries: [HistoryEntry]) {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.prettyPrinted]

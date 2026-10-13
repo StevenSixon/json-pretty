@@ -11,8 +11,9 @@ final class AppState {
     private(set) var copyToastToken = 0
 
     private let processor = JSONProcessor()
-    private let historyStore = HistoryStore()
     let launchAtLogin = LaunchAtLoginManager()
+    /// 历史记录（主线程内存态；磁盘 I/O 全部在后台执行）
+    private(set) var history: [HistoryEntry] = []
     private var formatTasks: [JSONTab.ID: Task<Void, Never>] = [:]
     /// Tab 编号计数器：单调递增，关闭 Tab 不回收
     private var tabCounter = 0
@@ -21,6 +22,15 @@ final class AppState {
 
     init() {
         addTab()
+        // 后台加载历史，避免大历史文件阻塞启动
+        Task.detached(priority: .utility) {
+            let entries = HistoryStore.load()
+            await self.applyLoadedHistory(entries)
+        }
+    }
+
+    private func applyLoadedHistory(_ entries: [HistoryEntry]) {
+        history = Array(entries.prefix(HistoryStore.capacity))
     }
 
     var selectedTab: JSONTab? {
@@ -44,7 +54,7 @@ final class AppState {
         formatTasks[id] = nil
         let closed = tabs.remove(at: index)
         if !closed.input.isEmpty {
-            historyStore.push(closed)
+            pushHistory(closed)
         }
         if tabs.isEmpty {
             addTab()
@@ -130,8 +140,21 @@ final class AppState {
 
     // MARK: - 历史记录
 
-    var history: [HistoryEntry] {
-        historyStore.entries
+    /// 入栈并后台落盘：内存更新即时生效，编码+写文件移出主线程
+    private func pushHistory(_ tab: JSONTab) {
+        let entry = HistoryEntry(input: tab.input, mode: tab.mode, savedAt: Date())
+        history.insert(entry, at: 0)
+        if history.count > HistoryStore.capacity {
+            history = Array(history.prefix(HistoryStore.capacity))
+        }
+        persistHistory()
+    }
+
+    private func persistHistory() {
+        let snapshot = history
+        Task.detached(priority: .utility) {
+            HistoryStore.save(snapshot)
+        }
     }
 
     func restoreFromHistory(_ entry: HistoryEntry) {
@@ -139,13 +162,14 @@ final class AppState {
     }
 
     func clearHistory() {
-        historyStore.clear()
+        history = []
+        persistHistory()
     }
 
     /// App 退出前调用：把仍打开的 Tab 存入历史
     func snapshotOpenTabs() {
         for tab in tabs where !tab.input.isEmpty {
-            historyStore.push(tab)
+            pushHistory(tab)
         }
     }
 }

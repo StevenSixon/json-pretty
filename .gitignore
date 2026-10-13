@@ -9,3 +9,6 @@ DerivedData/
 # SwiftPM
 Package.resolved
 .swiftpm/
+
+# 测试数据（体积大，不入库）
+testdata/

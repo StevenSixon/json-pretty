@@ -15,6 +15,16 @@ struct EditorView: NSViewRepresentable {
         textView.font = .monospacedSystemFont(ofSize: 13, weight: .regular)
         textView.isRichText = false
         textView.allowsUndo = true
+        // 性能配置（基准实测，10MB 文本）：
+        // - 非连续惰性布局：只排版可视区域，多行文本首屏 ~0.03s
+        // - 不换行 + 横向滚动：单行 10MB 压缩 JSON 一次性字形生成 ~1s；
+        //   若换行，单段落折成数万行 line fragment，排版需 ~20s（实测）
+        textView.layoutManager?.allowsNonContiguousLayout = true
+        textView.textContainer?.widthTracksTextView = false
+        textView.textContainer?.containerSize = NSSize(width: CGFloat.greatestFiniteMagnitude,
+                                                       height: CGFloat.greatestFiniteMagnitude)
+        textView.isHorizontallyResizable = true
+        scrollView.hasHorizontalScroller = true
         // 关闭一切自动改写，保证 JSON 原文不被“智能”标点破坏
         textView.isAutomaticQuoteSubstitutionEnabled = false
         textView.isAutomaticDashSubstitutionEnabled = false
