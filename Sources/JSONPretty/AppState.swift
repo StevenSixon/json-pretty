@@ -109,14 +109,19 @@ final class AppState {
             guard !Task.isCancelled else { return }
             guard let tab = self.tabs.first(where: { $0.id == id }) else { return }
             let input = tab.input, mode = tab.mode
+            BenchTimer.mark("解析开始（后台）")
             let result: Result<String, Error>
             do {
                 result = .success(try await processor.format(input, mode: mode))
             } catch {
                 result = .failure(error)
             }
+            BenchTimer.mark("解析完成")
             guard !Task.isCancelled else { return }
             self.applyResult(result, to: id)
+            BenchTimer.mark("结果已写回状态（等待 SwiftUI 渲染）")
+            // 下一个 runloop 打点：近似渲染提交完成
+            await MainActor.run { BenchTimer.mark("主线程 runloop 空闲") }
         }
     }
 

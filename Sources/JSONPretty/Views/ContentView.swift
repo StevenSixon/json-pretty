@@ -7,6 +7,7 @@ struct ContentView: View {
     @State private var showCopyToast = false
     @State private var editingTabID: JSONTab.ID?
     @State private var renameDraft = ""
+    @State private var editorLocked = false
     @FocusState private var renameFocused: Bool
 
     var body: some View {
@@ -38,6 +39,20 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
             appState.snapshotOpenTabs()
+        }
+        .task {
+            // 基准模式：--bench <文件> 启动后自动载入并全流程计时
+            guard let path = BenchTimer.filePath, let tab = appState.selectedTab else { return }
+            BenchTimer.mark("基准开始：读取文件 \(path)")
+            let content = await Task.detached(priority: .userInitiated) {
+                try? String(contentsOfFile: path, encoding: .utf8)
+            }.value
+            BenchTimer.mark("文件读取完成（\(content.map { $0.utf8.count / 1_000_000 } ?? 0)MB）")
+            if let content {
+                appState.updateInput(tab.id, input: content)
+                BenchTimer.mark("输入已写回状态（等待 SwiftUI 渲染编辑器）")
+                await MainActor.run { BenchTimer.mark("主线程 runloop 空闲（编辑器）") }
+            }
         }
     }
 
@@ -209,12 +224,21 @@ struct ContentView: View {
         HSplitView {
             // 左：输入
             VStack(alignment: .leading, spacing: 4) {
-                paneHeader("输入 JSON", systemImage: "pencil")
+                HStack(spacing: 6) {
+                    paneHeader("输入 JSON", systemImage: "pencil")
+                    if editorLocked {
+                        Label("大文件展示模式：已锁定编辑，粘贴可整体替换", systemImage: "lock.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.orange)
+                    }
+                }
                 if let tab = appState.selectedTab {
                     EditorView(text: Binding(
                         get: { tab.input },
                         set: { appState.updateInput(tab.id, input: $0) }
-                    ))
+                    ), onLockChange: { locked in
+                        editorLocked = locked
+                    })
                     .id(tab.id)
                 }
             }

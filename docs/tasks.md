@@ -14,12 +14,17 @@
 - [x] T10 开机启动：LaunchAtLoginManager（SMAppService）+ 工具栏设置菜单开关
 - [x] T11 Tab 增强：双击重命名（FR-3a）、拖动排序（FR-3b）、⌘N/⌘W 快捷键（FR-3c）、T1~Tn 默认编号（FR-3d）；AppStateTests 5 项单测通过
 - [x] T12 应用图标：Swift/CoreGraphics 程序化绘制（深色 squircle + 橙青双色花括号 + 白色冒号），iconset 全尺寸原生渲染 → iconutil 生成 .icns，集成进 make-app.sh 与 Info.plist
-- [x] T13 大文件性能优化（10MB 实测）：
+- [x] T13 大文件性能优化第一轮（裸基准驱动）：
   - 基准定位：解析层 0.16s 非瓶颈；瓶颈在 NSTextView 连续布局全量排版（单行 20s / 多行 4.6s）
   - 双栏改"不换行 + 横向滚动 + 非连续惰性布局"：10MB 单行 1.4s（字形生成下限）、18MB 格式化结果 0.04s
   - 换行方案被基准否决：单段落折行产生数万 line fragment，排版 19.5s
   - 历史记录磁盘 I/O 移出主线程（HistoryStore 改为无状态编解码，AppState 持内存态 + Task.detached 落盘）
-  - 整体：打开 10MB 文件从 ~25s 降至 ~1.5s
+- [x] T14 大文件深度优化第二轮（真实 App 实测驱动）：
+  - 诊断手段：App 内建 `--bench <file>` 基准模式 + `sample` 抓栈 + 配置矩阵实验（真实窗口环境）
+  - 根因：CoreText 对单条巨型行的排版为 O(n²) 病理（每 chunk 重建 CTTypesetter），窗口内赋值 ~38s，TextKit 1/2 同病（栈终点均为 `_ctTypesetter`），任何 NSTextView 配置无解
+  - 方案一（离屏快路径）：摘除 documentView → 设置 → 放回，38s → 0.33s
+  - 方案二（DisplayChunker 展示分行）：超长行（>64K 字符）按 4096 字符分行显示，编辑器进入锁定展示模式（只读、粘贴整体替换）；复制/双击始终用逻辑原文，选区复制精确剔除插入换行
+  - 结果：10MB 文件打开+格式化全流程 **0.78s**（bench 日志实测），20/20 测试通过
 
 ## T9 验收记录（2026-10-13）
 
