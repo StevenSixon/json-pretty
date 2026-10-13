@@ -21,9 +21,12 @@ enum TextViewFastPath {
 
 /// 编辑器文本视图：
 /// - 锁定态（含超长行的大文件）：粘贴 = 整体替换内容
-/// - 非锁定态：大粘贴走离屏快路径
+/// - 非锁定态大粘贴：整体重组文本走分行管线；不能用 insertText（会触发
+///   scrollRangeToVisible → 强制全量排版，实测 10MB 卡 39s）
 final class EditorTextView: NSTextView {
     var onReplaceAll: ((String) -> Void)?
+    /// 大粘贴回调：参数为剪贴板内容与当前选区
+    var onPasteLarge: ((String, NSRange) -> Void)?
     var isLocked = false
 
     override func paste(_ sender: Any?) {
@@ -35,12 +38,9 @@ final class EditorTextView: NSTextView {
             onReplaceAll?(content)
             return
         }
-        if content.utf8.count > TextViewFastPath.threshold, let scrollView = enclosingScrollView {
+        if content.utf8.count > TextViewFastPath.threshold {
             BenchTimer.mark("编辑器：大粘贴开始（\(content.utf8.count / 1_000_000)MB）")
-            scrollView.documentView = nil
-            insertText(content, replacementRange: selectedRange())
-            scrollView.documentView = self
-            BenchTimer.mark("编辑器：大粘贴完成")
+            onPasteLarge?(content, selectedRange())
             return
         }
         super.paste(sender)
@@ -71,6 +71,9 @@ struct EditorView: NSViewRepresentable {
         textView.delegate = context.coordinator
         textView.onReplaceAll = { [weak coordinator = context.coordinator] content in
             coordinator?.replaceAll(with: content)
+        }
+        textView.onPasteLarge = { [weak coordinator = context.coordinator] content, selection in
+            coordinator?.pasteLarge(content, selection: selection)
         }
         textView.font = .monospacedSystemFont(ofSize: 13, weight: .regular)
         textView.isRichText = false
@@ -130,6 +133,22 @@ struct EditorView: NSViewRepresentable {
             currentLogical = content
             parent.text = content
             refreshDisplay()
+        }
+
+        /// 大粘贴：在选区位置插入剪贴板内容，整体重组后走分行管线。
+        /// 不走 insertText（会 scrollRangeToVisible 强制排版）；大粘贴不支持撤销。
+        func pasteLarge(_ content: String, selection: NSRange) {
+            guard let textView else { return }
+            let current = textView.string as NSString
+            let newLogical = current.replacingCharacters(in: selection, with: content)
+            currentLogical = newLogical
+            parent.text = newLogical
+            refreshDisplay()
+            // 光标定位到插入内容之后（分行后展示坐标有偏移，取钳制值即可）
+            let displayLength = (textView.string as NSString).length
+            let target = selection.location + (content as NSString).length
+            textView.setSelectedRange(NSRange(location: min(target, displayLength), length: 0))
+            BenchTimer.mark("编辑器：大粘贴完成")
         }
 
         func textDidChange(_ notification: Notification) {
