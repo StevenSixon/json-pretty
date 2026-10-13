@@ -11,5 +11,13 @@ struct JSONPrettyApp: App {
                 .frame(minWidth: 900, minHeight: 560)
         }
         .defaultSize(width: 1200, height: 760)
+        .commands {
+            CommandMenu("标签页") {
+                Button("新建标签页") { appState.addTab() }
+                    .keyboardShortcut("n", modifiers: .command)
+                Button("关闭标签页") { appState.closeSelectedTab() }
+                    .keyboardShortcut("w", modifiers: .command)
+            }
+        }
     }
 }

@@ -5,7 +5,7 @@ import Observation
 @MainActor
 @Observable
 final class AppState {
-    private(set) var tabs: [JSONTab] = [JSONTab()]
+    private(set) var tabs: [JSONTab] = []
     var selectedTabID: JSONTab.ID?
     /// “已复制” Toast 的计数器，视图层监听变化后短暂展示
     private(set) var copyToastToken = 0
@@ -14,11 +14,13 @@ final class AppState {
     private let historyStore = HistoryStore()
     let launchAtLogin = LaunchAtLoginManager()
     private var formatTasks: [JSONTab.ID: Task<Void, Never>] = [:]
+    /// Tab 编号计数器：单调递增，关闭 Tab 不回收
+    private var tabCounter = 0
 
     private static let debounce: Duration = .milliseconds(300)
 
     init() {
-        selectedTabID = tabs.first?.id
+        addTab()
     }
 
     var selectedTab: JSONTab? {
@@ -28,7 +30,8 @@ final class AppState {
     // MARK: - Tab 管理
 
     func addTab(content: String = "") {
-        var tab = JSONTab()
+        tabCounter += 1
+        var tab = JSONTab(customName: "T\(tabCounter)")
         tab.input = content
         tabs.append(tab)
         selectedTabID = tab.id
@@ -48,6 +51,27 @@ final class AppState {
         } else if selectedTabID == id {
             selectedTabID = tabs[min(index, tabs.count - 1)].id
         }
+    }
+
+    /// 关闭当前选中的 Tab（⌘W）
+    func closeSelectedTab() {
+        if let selectedTabID { closeTab(selectedTabID) }
+    }
+
+    /// 重命名 Tab；空字符串视为清除自定义名，回退到内容推导
+    func renameTab(_ id: JSONTab.ID, name: String) {
+        guard let index = tabs.firstIndex(where: { $0.id == id }) else { return }
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        tabs[index].customName = trimmed.isEmpty ? nil : trimmed
+    }
+
+    /// 拖动排序：把 draggedID 移动到 targetID 所在位置
+    func moveTab(_ draggedID: JSONTab.ID, onto targetID: JSONTab.ID) {
+        guard draggedID != targetID,
+              let from = tabs.firstIndex(where: { $0.id == draggedID }),
+              let to = tabs.firstIndex(where: { $0.id == targetID }) else { return }
+        let tab = tabs.remove(at: from)
+        tabs.insert(tab, at: to)
     }
 
     // MARK: - 编辑与解析

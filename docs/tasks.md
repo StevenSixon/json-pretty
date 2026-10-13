@@ -12,6 +12,7 @@
 - [x] T8 打包脚本 make-app.sh，生成可双击运行的 .app
 - [x] T9 全量验收：对照 spec.md 的 FR-1 ~ FR-8（见下表）
 - [x] T10 开机启动：LaunchAtLoginManager（SMAppService）+ 工具栏设置菜单开关
+- [x] T11 Tab 增强：双击重命名（FR-3a）、拖动排序（FR-3b）、⌘N/⌘W 快捷键（FR-3c）、T1~Tn 默认编号（FR-3d）；AppStateTests 5 项单测通过
 
 ## T9 验收记录（2026-10-13）
 

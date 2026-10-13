@@ -5,6 +5,9 @@ struct ContentView: View {
     @Environment(AppState.self) private var appState
     @State private var showHistory = false
     @State private var showCopyToast = false
+    @State private var editingTabID: JSONTab.ID?
+    @State private var renameDraft = ""
+    @FocusState private var renameFocused: Bool
 
     var body: some View {
         @Bindable var state = appState
@@ -68,10 +71,22 @@ struct ContentView: View {
     private func tabItem(_ tab: JSONTab) -> some View {
         let isSelected = tab.id == appState.selectedTabID
         return HStack(spacing: 6) {
-            Text(tab.title)
-                .font(.caption)
-                .lineLimit(1)
-                .frame(maxWidth: 140)
+            if editingTabID == tab.id {
+                TextField("", text: $renameDraft)
+                    .textFieldStyle(.plain)
+                    .font(.caption)
+                    .frame(width: 90)
+                    .focused($renameFocused)
+                    .onSubmit { commitRename(tab.id) }
+                    .onChange(of: renameFocused) { _, focused in
+                        if !focused { commitRename(tab.id) }
+                    }
+            } else {
+                Text(tab.title)
+                    .font(.caption)
+                    .lineLimit(1)
+                    .frame(maxWidth: 140)
+            }
 
             Button {
                 appState.closeTab(tab.id)
@@ -88,9 +103,31 @@ struct ContentView: View {
         .background(isSelected ? Color.accentColor.opacity(0.15) : Color.clear,
                     in: RoundedRectangle(cornerRadius: 6))
         .contentShape(Rectangle())
-        .onTapGesture {
+        .onTapGesture(count: 2) {
+            startRename(tab)
+        }
+        .onTapGesture(count: 1) {
             appState.selectedTabID = tab.id
         }
+        .draggable(tab.id.uuidString)
+        .dropDestination(for: String.self) { items, _ in
+            guard let raw = items.first, let draggedID = UUID(uuidString: raw) else { return false }
+            appState.moveTab(draggedID, onto: tab.id)
+            return true
+        }
+    }
+
+    private func startRename(_ tab: JSONTab) {
+        appState.selectedTabID = tab.id
+        renameDraft = tab.title
+        editingTabID = tab.id
+        renameFocused = true
+    }
+
+    private func commitRename(_ id: JSONTab.ID) {
+        guard editingTabID == id else { return }
+        appState.renameTab(id, name: renameDraft)
+        editingTabID = nil
     }
 
     // MARK: - 工具栏
