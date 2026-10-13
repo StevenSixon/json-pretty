@@ -13,6 +13,7 @@
 - [x] T9 全量验收：对照 spec.md 的 FR-1 ~ FR-8（见下表）
 - [x] T10 开机启动：LaunchAtLoginManager（SMAppService）+ 工具栏设置菜单开关
 - [x] T11 Tab 增强：双击重命名（FR-3a）、拖动排序（FR-3b）、⌘N/⌘W 快捷键（FR-3c）、T1~Tn 默认编号（FR-3d）；AppStateTests 5 项单测通过
+- [x] T12 应用图标：Swift/CoreGraphics 程序化绘制（深色 squircle + 橙青双色花括号 + 白色冒号），iconset 全尺寸原生渲染 → iconutil 生成 .icns，集成进 make-app.sh 与 Info.plist
 
 ## T9 验收记录（2026-10-13）
 
