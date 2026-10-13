@@ -40,6 +40,11 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
             appState.snapshotOpenTabs()
         }
+        // 锁定标记是“当前 Tab”的状态：切换/新建 Tab 时重置，
+        // 若新 Tab 仍是大文件，编辑器分行后会通过 onLockChange 重新置位
+        .onChange(of: appState.selectedTabID) { _, _ in
+            editorLocked = false
+        }
         .task {
             // 基准模式：--bench <文件> 启动后自动载入并全流程计时
             guard let path = BenchTimer.filePath, let tab = appState.selectedTab else { return }
