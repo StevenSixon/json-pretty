@@ -4,8 +4,9 @@ import AppKit
 /// 负责匹配缓存、临时属性高亮、当前匹配加深与滚动定位。
 @MainActor
 final class SearchHighlighter {
-    private static let matchColor = NSColor.systemYellow.withAlphaComponent(0.35)
-    private static let currentColor = NSColor.systemOrange.withAlphaComponent(0.55)
+    /// 普通匹配：浅黄；当前匹配：深一档的琥珀黄以便区分
+    private static let matchColor = NSColor(calibratedRed: 1.0, green: 0.93, blue: 0.45, alpha: 0.40)
+    private static let currentColor = NSColor(calibratedRed: 1.0, green: 0.80, blue: 0.20, alpha: 0.75)
 
     private weak var textView: NSTextView?
     private var matches: [NSRange] = []
