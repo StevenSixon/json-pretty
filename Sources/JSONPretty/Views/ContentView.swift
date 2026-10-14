@@ -9,6 +9,7 @@ struct ContentView: View {
     @State private var renameDraft = ""
     @State private var editorLocked = false
     @FocusState private var renameFocused: Bool
+    @FocusState private var searchFocused: Bool
 
     var body: some View {
         @Bindable var state = appState
@@ -17,6 +18,10 @@ struct ContentView: View {
             tabBar
             Divider()
             toolbar
+            if appState.search.isVisible {
+                Divider()
+                searchBar
+            }
             Divider()
             splitContent
         }
@@ -44,6 +49,10 @@ struct ContentView: View {
         // 若新 Tab 仍是大文件，编辑器分行后会通过 onLockChange 重新置位
         .onChange(of: appState.selectedTabID) { _, _ in
             editorLocked = false
+        }
+        // 搜索栏打开时自动聚焦输入框
+        .onChange(of: appState.search.isVisible) { _, visible in
+            if visible { searchFocused = true }
         }
         .task {
             // 基准模式：--bench <文件> 启动后自动载入并全流程计时
@@ -223,6 +232,61 @@ struct ContentView: View {
         .padding(.vertical, 8)
     }
 
+    // MARK: - 搜索栏
+
+    private var searchBar: some View {
+        let search = appState.search
+        return HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+
+            TextField("搜索（作用于：\(search.activePane == .editor ? "左侧输入" : "右侧结果")）",
+                      text: Binding(
+                        get: { search.query },
+                        set: { search.setQuery($0) }
+                      ))
+                .textFieldStyle(.plain)
+                .frame(maxWidth: 360)
+                .focused($searchFocused)
+                .onSubmit { search.next() }      // Enter = 下一个
+                .onExitCommand { search.close() } // Esc = 关闭
+
+            if !search.query.isEmpty {
+                Text(search.activeMatchCount == 0
+                     ? "无结果"
+                     : "\(min(search.currentIndex + 1, search.activeMatchCount))/\(search.activeMatchCount)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+
+            Button { search.previous() } label: {
+                Image(systemName: "chevron.up")
+            }
+            .buttonStyle(.borderless)
+            .disabled(search.activeMatchCount == 0)
+            .help("上一个")
+
+            Button { search.next() } label: {
+                Image(systemName: "chevron.down")
+            }
+            .buttonStyle(.borderless)
+            .disabled(search.activeMatchCount == 0)
+            .help("下一个（Enter）")
+
+            Spacer()
+
+            Button { search.close() } label: {
+                Image(systemName: "xmark")
+            }
+            .buttonStyle(.borderless)
+            .help("关闭（Esc）")
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .background(.bar)
+    }
+
     // MARK: - 左右分栏
 
     private var splitContent: some View {
@@ -243,7 +307,7 @@ struct ContentView: View {
                         set: { appState.updateInput(tab.id, input: $0) }
                     ), onLockChange: { locked in
                         editorLocked = locked
-                    })
+                    }, search: appState.search)
                     .id(tab.id)
                 }
             }
@@ -273,9 +337,9 @@ struct ContentView: View {
                 .background(Color.red.opacity(0.06),
                             in: RoundedRectangle(cornerRadius: 8))
             } else {
-                ResultView(text: tab.output) {
+                ResultView(text: tab.output, onCopy: {
                     appState.notifyCopied()
-                }
+                }, search: appState.search)
                 .id(tab.id)
             }
         }

@@ -18,6 +18,10 @@ struct JSONPrettyApp: App {
                 Button("关闭标签页") { appState.closeSelectedTab() }
                     .keyboardShortcut("w", modifiers: .command)
             }
+            CommandGroup(after: .pasteboard) {
+                Button("查找…") { appState.search.open() }
+                    .keyboardShortcut("f", modifiers: .command)
+            }
         }
     }
 }

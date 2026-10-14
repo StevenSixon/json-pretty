@@ -57,6 +57,8 @@ struct EditorView: NSViewRepresentable {
     @Binding var text: String
     /// 锁定状态变化回调（用于 UI 展示提示）
     var onLockChange: ((Bool) -> Void)?
+    /// 搜索控制器（可选；传入后支持高亮与定位）
+    var search: SearchController?
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -99,6 +101,7 @@ struct EditorView: NSViewRepresentable {
 
         context.coordinator.textView = textView
         context.coordinator.scrollView = scrollView
+        context.coordinator.highlighter = SearchHighlighter(textView: textView)
         scrollView.documentView = textView
         return scrollView
     }
@@ -107,12 +110,16 @@ struct EditorView: NSViewRepresentable {
         // 外部变更（打开文件/历史恢复/锁定态粘贴替换）时同步；
         // 用户输入时 delegate 已回写 binding，currentLogical 一致则不重设
         context.coordinator.syncLogical(text)
+        if let search {
+            context.coordinator.highlighter?.apply(controller: search, pane: .editor)
+        }
     }
 
     final class Coordinator: NSObject, NSTextViewDelegate {
         var parent: EditorView
         weak var textView: EditorTextView?
         weak var scrollView: NSScrollView?
+        var highlighter: SearchHighlighter?
         /// 当前展示内容对应的逻辑原文
         private(set) var currentLogical = ""
         /// 分行/回填展示文本期间屏蔽 textDidChange，避免把展示文本误写回模型
@@ -160,6 +167,13 @@ struct EditorView: NSViewRepresentable {
             if raw.utf8.count > DisplayChunker.maxLineLength {
                 refreshDisplay()
             }
+        }
+
+        /// 编辑器获得焦点/选区变化 → 搜索作用面板切换到左栏。
+        /// 程序化写入（isRefreshing）引发的选区重置不算用户焦点行为。
+        func textViewDidChangeSelection(_ notification: Notification) {
+            guard !isRefreshing else { return }
+            parent.search?.setActivePane(.editor)
         }
 
         private func refreshDisplay() {

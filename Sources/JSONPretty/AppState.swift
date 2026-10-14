@@ -12,6 +12,7 @@ final class AppState {
 
     private let processor = JSONProcessor()
     let launchAtLogin = LaunchAtLoginManager()
+    let search = SearchController()
     /// 历史记录（主线程内存态；磁盘 I/O 全部在后台执行）
     private(set) var history: [HistoryEntry] = []
     private var formatTasks: [JSONTab.ID: Task<Void, Never>] = [:]

@@ -43,6 +43,8 @@ final class CopyOnDoubleClickTextView: NSTextView {
 struct ResultView: NSViewRepresentable {
     let text: String
     var onCopy: (() -> Void)?
+    /// 搜索控制器（可选；传入后支持高亮与定位）
+    var search: SearchController?
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
@@ -70,25 +72,43 @@ struct ResultView: NSViewRepresentable {
         textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude,
                                   height: CGFloat.greatestFiniteMagnitude)
         textView.autoresizingMask = []
+        textView.delegate = context.coordinator
 
         context.coordinator.textView = textView
+        context.coordinator.highlighter = SearchHighlighter(textView: textView)
         scrollView.documentView = textView
         return scrollView
     }
 
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         guard let textView = scrollView.documentView as? CopyOnDoubleClickTextView else { return }
-        guard textView.logicalText != text else { return }
-
-        let chunk = DisplayChunker.process(text)
-        BenchTimer.mark("结果区：开始写入 \(chunk.text.utf8.count / 1_000_000)MB 展示文本(分行=\(chunk.isChunked))")
-        TextViewFastPath.setString(chunk.text, on: scrollView)
-        BenchTimer.mark("结果区：写入完成")
-        textView.logicalText = text
-        textView.chunkBreaks = chunk.breaks
+        if textView.logicalText != text {
+            let chunk = DisplayChunker.process(text)
+            BenchTimer.mark("结果区：开始写入 \(chunk.text.utf8.count / 1_000_000)MB 展示文本(分行=\(chunk.isChunked))")
+            context.coordinator.isRefreshing = true
+            TextViewFastPath.setString(chunk.text, on: scrollView)
+            context.coordinator.isRefreshing = false
+            BenchTimer.mark("结果区：写入完成")
+            textView.logicalText = text
+            textView.chunkBreaks = chunk.breaks
+        }
+        if let search {
+            context.coordinator.search = search
+            context.coordinator.highlighter?.apply(controller: search, pane: .result)
+        }
     }
 
-    final class Coordinator {
+    final class Coordinator: NSObject, NSTextViewDelegate {
         weak var textView: CopyOnDoubleClickTextView?
+        var highlighter: SearchHighlighter?
+        var search: SearchController?
+        /// 程序化写入标记：期间的选区重置不应触发搜索面板切换
+        var isRefreshing = false
+
+        /// 结果区点击/选区变化 → 搜索作用面板切换到右栏
+        func textViewDidChangeSelection(_ notification: Notification) {
+            guard !isRefreshing else { return }
+            search?.setActivePane(.result)
+        }
     }
 }
