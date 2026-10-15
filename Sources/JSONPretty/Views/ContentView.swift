@@ -50,13 +50,12 @@ struct ContentView: View {
         .onChange(of: appState.selectedTabID) { _, _ in
             editorLocked = false
         }
-        // 搜索栏打开时自动聚焦输入框，并全选已有查询词便于替换输入
-        .onChange(of: appState.search.isVisible) { _, visible in
-            if visible {
-                searchFocused = true
-                DispatchQueue.main.async {
-                    (NSApp.keyWindow?.firstResponder as? NSTextView)?.selectAll(nil)
-                }
+        // ⌘F（focusToken 递增）时聚焦搜索框并全选已有查询词；
+        // 搜索栏已打开但失焦的场景同样生效
+        .onChange(of: appState.search.focusToken) { _, _ in
+            searchFocused = true
+            DispatchQueue.main.async {
+                (NSApp.keyWindow?.firstResponder as? NSTextView)?.selectAll(nil)
             }
         }
         .task {

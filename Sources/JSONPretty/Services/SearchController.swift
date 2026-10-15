@@ -10,6 +10,8 @@ final class SearchController {
 
     var query = ""
     var isVisible = false
+    /// 聚焦请求令牌：⌘F 时递增（即使搜索栏已打开），视图层据此重新聚焦并全选
+    private(set) var focusToken = 0
     /// 模糊匹配开关：开启后按“行内子序列”匹配；默认精确（子串）
     private(set) var fuzzy = false
     /// 当前搜索作用的面板：跟随焦点，默认右侧结果区
@@ -57,6 +59,7 @@ final class SearchController {
 
     func open() {
         isVisible = true
+        focusToken += 1 // 已打开时也要重新聚焦 + 全选
     }
 
     /// 关闭只隐藏搜索栏：查询词保留，下次 ⌘F 打开时自动全选便于替换输入

@@ -58,4 +58,13 @@ final class SearchControllerTests: XCTestCase {
         XCTAssertTrue(controller.fuzzy)
         XCTAssertEqual(controller.currentIndex, 0, "切换匹配模式应重置游标")
     }
+
+    func testOpenIncrementsFocusTokenEvenWhenAlreadyVisible() {
+        // 搜索栏已打开但失焦时，⌘F 必须再次触发聚焦请求
+        let controller = SearchController()
+        controller.open()
+        let first = controller.focusToken
+        controller.open() // 已打开状态下再次 ⌘F
+        XCTAssertGreaterThan(controller.focusToken, first)
+    }
 }
