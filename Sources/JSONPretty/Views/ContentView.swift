@@ -27,7 +27,7 @@ struct ContentView: View {
         }
         .overlay(alignment: .top) {
             if showCopyToast {
-                Label("已复制到剪贴板", systemImage: "checkmark.circle.fill")
+                Label("Copied to clipboard", systemImage: "checkmark.circle.fill")
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
                     .background(.regularMaterial, in: Capsule())
@@ -94,7 +94,7 @@ struct ContentView: View {
                     .frame(width: 24, height: 24)
             }
             .buttonStyle(.borderless)
-            .help("新建 Tab")
+            .help("New Tab")
             .padding(.trailing, 8)
         }
         .frame(height: 34)
@@ -168,7 +168,7 @@ struct ContentView: View {
     private var toolbar: some View {
         HStack(spacing: 12) {
             if let tab = appState.selectedTab {
-                Picker("模式", selection: Binding(
+                Picker("Mode", selection: Binding(
                     get: { tab.mode },
                     set: { appState.updateMode(tab.id, mode: $0) }
                 )) {
@@ -189,34 +189,34 @@ struct ContentView: View {
                     }
                 }
             } label: {
-                Label("打开文件", systemImage: "folder")
+                Label("Open File", systemImage: "folder")
             }
-            .help("打开 .json 文件到当前 Tab")
+            .help("Open a .json file into the current tab")
 
             Button {
                 if let tab = appState.selectedTab {
                     FileExporter.saveJSONFile(tab.output)
                 }
             } label: {
-                Label("导出", systemImage: "square.and.arrow.down")
+                Label("Export", systemImage: "square.and.arrow.down")
             }
             .disabled(appState.selectedTab?.output.isEmpty ?? true)
-            .help("将右侧结果保存为 .json 文件")
+            .help("Save the result as a .json file")
 
             Spacer()
 
             Button {
                 showHistory.toggle()
             } label: {
-                Label("历史", systemImage: "clock.arrow.circlepath")
+                Label("History", systemImage: "clock.arrow.circlepath")
             }
             .popover(isPresented: $showHistory) {
                 HistoryView()
             }
-            .help("查看最近 10 条记录")
+            .help("View the last 10 entries")
 
             Menu {
-                Toggle("开机启动", isOn: Binding(
+                Toggle("Launch at Login", isOn: Binding(
                     get: { appState.launchAtLogin.isEnabled },
                     set: { appState.launchAtLogin.setEnabled($0) }
                 ))
@@ -229,7 +229,7 @@ struct ContentView: View {
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)
             .fixedSize()
-            .help("设置")
+            .help("Settings")
             .onAppear { appState.launchAtLogin.refresh() }
         }
         .padding(.horizontal, 12)
@@ -244,7 +244,7 @@ struct ContentView: View {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
 
-            TextField("搜索（作用于：\(search.activePane == .editor ? "左侧输入" : "右侧结果")）",
+            TextField("Search (in: \(search.activePane == .editor ? "Left Input" : "Right Result"))",
                       text: Binding(
                         get: { search.query },
                         set: { search.setQuery($0) }
@@ -263,7 +263,7 @@ struct ContentView: View {
 
             if !search.query.isEmpty {
                 Text(search.activeMatchCount == 0
-                     ? "无结果"
+                     ? "No results"
                      : "\(min(search.currentIndex + 1, search.activeMatchCount))/\(search.activeMatchCount)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -272,7 +272,7 @@ struct ContentView: View {
 
             // 精确 / 模糊匹配切换
             Button { search.toggleFuzzy() } label: {
-                Text(search.fuzzy ? "模糊" : "精确")
+                Text(search.fuzzy ? "Fuzzy" : "Exact")
                     .font(.caption)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
@@ -281,21 +281,21 @@ struct ContentView: View {
                     .overlay(RoundedRectangle(cornerRadius: 4).stroke(.secondary.opacity(0.4)))
             }
             .buttonStyle(.plain)
-            .help(search.fuzzy ? "模糊匹配：字符按序出现即命中（点击切回精确）" : "精确匹配：子串查找（点击切换模糊）")
+            .help(search.fuzzy ? "Fuzzy: characters in order match (click for Exact)" : "Exact: substring match (click for Fuzzy)")
 
             Button { search.previous() } label: {
                 Image(systemName: "chevron.up")
             }
             .buttonStyle(.borderless)
             .disabled(search.activeMatchCount == 0)
-            .help("上一个")
+            .help("Previous")
 
             Button { search.next() } label: {
                 Image(systemName: "chevron.down")
             }
             .buttonStyle(.borderless)
             .disabled(search.activeMatchCount == 0)
-            .help("下一个（Enter）")
+            .help("Next (Enter)")
 
             Spacer()
 
@@ -303,7 +303,7 @@ struct ContentView: View {
                 Image(systemName: "xmark")
             }
             .buttonStyle(.borderless)
-            .help("关闭（Esc）")
+            .help("Close (Esc)")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 7)
@@ -317,9 +317,9 @@ struct ContentView: View {
             // 左：输入
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
-                    paneHeader("输入 JSON", systemImage: "pencil")
+                    paneHeader("Input JSON", systemImage: "pencil")
                     if editorLocked {
-                        Label("大文件展示模式：已锁定编辑，粘贴可整体替换", systemImage: "lock.fill")
+                        Label("Large-file view: editing locked, paste to replace all", systemImage: "lock.fill")
                             .font(.caption2)
                             .foregroundStyle(.orange)
                     }
@@ -338,7 +338,7 @@ struct ContentView: View {
 
             // 右：结果（只读）
             VStack(alignment: .leading, spacing: 4) {
-                paneHeader("结果（双击复制）", systemImage: "doc.on.doc")
+                paneHeader("Result (double-click to copy)", systemImage: "doc.on.doc")
                 resultPane
             }
             .frame(minWidth: 300)

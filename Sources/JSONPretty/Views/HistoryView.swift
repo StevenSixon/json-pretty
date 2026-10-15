@@ -7,11 +7,11 @@ struct HistoryView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("最近记录")
+                Text("Recent")
                     .font(.headline)
                 Spacer()
                 if !appState.history.isEmpty {
-                    Button("清空", role: .destructive) {
+                    Button("Clear", role: .destructive) {
                         appState.clearHistory()
                     }
                     .buttonStyle(.borderless)
@@ -24,9 +24,9 @@ struct HistoryView: View {
             Divider()
 
             if appState.history.isEmpty {
-                ContentUnavailableView("暂无历史记录",
+                ContentUnavailableView("No History",
                                        systemImage: "clock",
-                                       description: Text("关闭的 Tab 会自动保留在这里"))
+                                       description: Text("Closed tabs are kept here automatically"))
                     .frame(width: 320, height: 200)
             } else {
                 List(appState.history) { entry in
@@ -34,7 +34,7 @@ struct HistoryView: View {
                         appState.restoreFromHistory(entry)
                     } label: {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(entry.preview.isEmpty ? "(空)" : entry.preview)
+                            Text(entry.preview.isEmpty ? "(empty)" : entry.preview)
                                 .font(.system(.body, design: .monospaced))
                                 .lineLimit(2)
                                 .truncationMode(.tail)

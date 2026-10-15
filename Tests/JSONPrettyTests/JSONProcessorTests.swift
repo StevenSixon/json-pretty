@@ -34,7 +34,7 @@ final class JSONProcessorTests: XCTestCase {
             _ = try await processor.format(input, mode: .pretty)
             XCTFail("非法 JSON 应抛错")
         } catch {
-            XCTAssertTrue(error.localizedDescription.contains("JSON 解析失败"))
+            XCTAssertTrue(error.localizedDescription.contains("JSON parse failed"))
         }
     }
 

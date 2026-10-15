@@ -26,7 +26,7 @@ final class AppStateTests: XCTestCase {
 
         // 空名称回退到内容推导 / 未命名
         state.renameTab(id, name: "   ")
-        XCTAssertEqual(state.tabs[0].title, "未命名")
+        XCTAssertEqual(state.tabs[0].title, "Untitled")
     }
 
     func testMoveTab() {

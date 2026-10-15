@@ -16,7 +16,7 @@ actor JSONProcessor {
         guard !trimmed.isEmpty else { return "" }
 
         guard let data = trimmed.data(using: .utf8) else {
-            throw JSONError(message: "文本编码无效，无法解析")
+            throw JSONError(message: "Invalid text encoding")
         }
 
         // fragments 允许顶层为字符串/数字等标量
@@ -27,7 +27,7 @@ actor JSONProcessor {
             // Foundation 的错误描述含 "around line X, column Y" 定位信息，直接透出
             let detail = (error.userInfo[NSDebugDescriptionErrorKey] as? String)
                 ?? error.localizedDescription
-            throw JSONError(message: "JSON 解析失败：\(detail)")
+            throw JSONError(message: "JSON parse failed: \(detail)")
         }
 
         guard JSONSerialization.isValidJSONObject(object) else {
@@ -43,11 +43,11 @@ actor JSONProcessor {
         do {
             let result = try JSONSerialization.data(withJSONObject: object, options: options)
             guard let string = String(data: result, encoding: .utf8) else {
-                throw JSONError(message: "结果编码失败")
+                throw JSONError(message: "Failed to encode result")
             }
             return string
         } catch {
-            throw JSONError(message: "JSON 序列化失败：\(error.localizedDescription)")
+            throw JSONError(message: "JSON serialization failed: \(error.localizedDescription)")
         }
     }
 }

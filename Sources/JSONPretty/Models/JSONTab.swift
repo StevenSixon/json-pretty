@@ -5,7 +5,7 @@ enum JSONMode: String, Codable, CaseIterable {
     case pretty
     case compact
 
-    var title: String { self == .pretty ? "格式化" : "压缩" }
+    var title: String { self == .pretty ? "Format" : "Compact" }
 }
 
 /// 单个 Tab 的全部状态
@@ -23,7 +23,7 @@ struct JSONTab: Identifiable, Codable, Equatable {
     var title: String {
         if let customName, !customName.isEmpty { return customName }
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return "未命名" }
+        guard !trimmed.isEmpty else { return "Untitled" }
         let snippet = String(trimmed.prefix(24)).replacingOccurrences(of: "\n", with: " ")
         return snippet
     }
