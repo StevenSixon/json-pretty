@@ -253,7 +253,13 @@ struct ContentView: View {
                 .textFieldStyle(.plain)
                 .frame(maxWidth: 360)
                 .focused($searchFocused)
-                .onSubmit { search.next() }      // Enter = 下一个
+                // Enter = 下一个。
+                // 用 onKeyPress 而非 onSubmit：macOS 上 plain 样式 TextField 的
+                // onSubmit 存在不触发的已知问题，onKeyPress 是确定性 API（macOS 14+）
+                .onKeyPress(.return) {
+                    search.next()
+                    return .handled
+                }
                 .onExitCommand { search.close() } // Esc = 关闭
 
             if !search.query.isEmpty {
