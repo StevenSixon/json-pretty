@@ -50,9 +50,14 @@ struct ContentView: View {
         .onChange(of: appState.selectedTabID) { _, _ in
             editorLocked = false
         }
-        // 搜索栏打开时自动聚焦输入框
+        // 搜索栏打开时自动聚焦输入框，并全选已有查询词便于替换输入
         .onChange(of: appState.search.isVisible) { _, visible in
-            if visible { searchFocused = true }
+            if visible {
+                searchFocused = true
+                DispatchQueue.main.async {
+                    (NSApp.keyWindow?.firstResponder as? NSTextView)?.selectAll(nil)
+                }
+            }
         }
         .task {
             // 基准模式：--bench <文件> 启动后自动载入并全流程计时
@@ -259,6 +264,19 @@ struct ContentView: View {
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
             }
+
+            // 精确 / 模糊匹配切换
+            Button { search.toggleFuzzy() } label: {
+                Text(search.fuzzy ? "模糊" : "精确")
+                    .font(.caption)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(search.fuzzy ? Color.accentColor.opacity(0.2) : Color.clear,
+                                in: RoundedRectangle(cornerRadius: 4))
+                    .overlay(RoundedRectangle(cornerRadius: 4).stroke(.secondary.opacity(0.4)))
+            }
+            .buttonStyle(.plain)
+            .help(search.fuzzy ? "模糊匹配：字符按序出现即命中（点击切回精确）" : "精确匹配：子串查找（点击切换模糊）")
 
             Button { search.previous() } label: {
                 Image(systemName: "chevron.up")

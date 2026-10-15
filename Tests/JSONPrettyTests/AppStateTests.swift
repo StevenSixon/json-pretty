@@ -54,4 +54,33 @@ final class AppStateTests: XCTestCase {
         XCTAssertEqual(state.tabs.count, 1)
         XCTAssertEqual(state.tabs[0].title, "T2")
     }
+
+    func testSearchIsIndependentPerTab() {
+        let state = AppState()
+        let t1Search = state.search
+        t1Search.setQuery("alpha")
+        t1Search.open()
+
+        state.addTab()
+        let t2Search = state.search
+        XCTAssertTrue(t1Search !== t2Search, "每个 Tab 应有独立的搜索控制器")
+        XCTAssertEqual(t2Search.query, "", "新 Tab 搜索应为空")
+        XCTAssertFalse(t2Search.isVisible, "新 Tab 搜索栏默认关闭")
+
+        // 切回 T1：搜索状态完整保留
+        state.selectedTabID = state.tabs[0].id
+        XCTAssertEqual(state.search.query, "alpha")
+        XCTAssertTrue(state.search.isVisible)
+    }
+
+    func testSearchControllerRemovedOnTabClose() {
+        let state = AppState()
+        state.addTab()
+        let t2Search = state.search
+        t2Search.setQuery("beta")
+        state.closeTab(state.tabs[1].id)
+        // 关闭后回落到剩余 Tab 的控制器，且不为已关闭 Tab 保留状态
+        XCTAssertEqual(state.search.query, "")
+        XCTAssertEqual(state.tabs.count, 1)
+    }
 }

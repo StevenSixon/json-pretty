@@ -12,7 +12,15 @@ final class AppState {
 
     private let processor = JSONProcessor()
     let launchAtLogin = LaunchAtLoginManager()
-    let search = SearchController()
+    /// 当前 Tab 的搜索控制器；每个 Tab 独立（查询词/匹配/游标互不干扰）
+    var search: SearchController {
+        if let id = selectedTabID, let controller = searchControllers[id] {
+            return controller
+        }
+        return fallbackSearch
+    }
+    private var searchControllers: [JSONTab.ID: SearchController] = [:]
+    private let fallbackSearch = SearchController()
     /// 历史记录（主线程内存态；磁盘 I/O 全部在后台执行）
     private(set) var history: [HistoryEntry] = []
     private var formatTasks: [JSONTab.ID: Task<Void, Never>] = [:]
@@ -45,6 +53,7 @@ final class AppState {
         var tab = JSONTab(customName: "T\(tabCounter)")
         tab.input = content
         tabs.append(tab)
+        searchControllers[tab.id] = SearchController()
         selectedTabID = tab.id
         scheduleFormat(for: tab.id, immediate: true)
     }
@@ -53,6 +62,7 @@ final class AppState {
         guard let index = tabs.firstIndex(where: { $0.id == id }) else { return }
         formatTasks[id]?.cancel()
         formatTasks[id] = nil
+        searchControllers.removeValue(forKey: id)
         let closed = tabs.remove(at: index)
         if !closed.input.isEmpty {
             pushHistory(closed)

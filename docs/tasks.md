@@ -51,3 +51,10 @@
 | FR-8 错误提示 | ✅ | 单测 testInvalidJSONReportsLocation；UI 红色错误面板含行列定位 |
 
 `swift build` 零警告，`swift test` 6/6 通过。
+- [x] T17 搜索增强（FR-10 修订）：
+  - ⌘F 打开时保留并自动全选已有查询词
+  - 搜索异步化：200ms 防抖 + 后台计算（NSString 不可变快照避免与 textStorage 竞争），过期结果按代际丢弃
+  - 高亮提速：批量添加临时属性后单次刷新可视区；高亮上限提升至 2 万
+  - 精确（子串）/ 模糊（行内子序列）匹配切换
+  - 每 Tab 独立 SearchController（查询词/匹配/游标互隔离，关 Tab 回收）
+  - 41/41 测试通过（新增模糊匹配 5 项 + Tab 隔离 2 项 + 异步适配改造）
