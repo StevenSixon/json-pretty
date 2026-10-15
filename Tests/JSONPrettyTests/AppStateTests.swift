@@ -83,4 +83,25 @@ final class AppStateTests: XCTestCase {
         XCTAssertEqual(state.search.query, "")
         XCTAssertEqual(state.tabs.count, 1)
     }
+
+    func testSelectTabByIndex() {
+        let state = AppState()
+        state.addTab()
+        state.addTab()
+        // 当前选中 T3（最新）；⌘1 应切回 T1
+        XCTAssertEqual(state.selectedTabID, state.tabs[2].id)
+        state.selectTab(at: 0)
+        XCTAssertEqual(state.selectedTabID, state.tabs[0].id)
+        state.selectTab(at: 2)
+        XCTAssertEqual(state.selectedTabID, state.tabs[2].id)
+    }
+
+    func testSelectTabOutOfBoundsIsNoop() {
+        let state = AppState()
+        let current = state.selectedTabID
+        state.selectTab(at: 8) // 只有 1 个 Tab，⌘9 应无效果
+        XCTAssertEqual(state.selectedTabID, current)
+        state.selectTab(at: -1)
+        XCTAssertEqual(state.selectedTabID, current)
+    }
 }

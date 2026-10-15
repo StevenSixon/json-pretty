@@ -79,6 +79,12 @@ final class AppState {
         if let selectedTabID { closeTab(selectedTabID) }
     }
 
+    /// 按序号选中 Tab（⌘1~⌘9，序号越界时 no-op）
+    func selectTab(at index: Int) {
+        guard tabs.indices.contains(index) else { return }
+        selectedTabID = tabs[index].id
+    }
+
     /// 重命名 Tab；空字符串视为清除自定义名，回退到内容推导
     func renameTab(_ id: JSONTab.ID, name: String) {
         guard let index = tabs.firstIndex(where: { $0.id == id }) else { return }

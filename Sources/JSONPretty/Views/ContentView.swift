@@ -25,6 +25,19 @@ struct ContentView: View {
             Divider()
             splitContent
         }
+        // 隐藏快捷键：⌘T = 新建 Tab（等同 ⌘N）；⌘1~⌘9 = 按序号选中 Tab
+        // （菜单中已有 ⌘N/⌘W 可见项，这些仅作键盘补充，不重复占菜单位）
+        .background(
+            Group {
+                Button("") { appState.addTab() }
+                    .keyboardShortcut("t", modifiers: .command)
+                ForEach(1...9, id: \.self) { number in
+                    Button("") { appState.selectTab(at: number - 1) }
+                        .keyboardShortcut(KeyEquivalent(Character("\(number)")), modifiers: .command)
+                }
+            }
+            .hidden()
+        )
         .overlay(alignment: .top) {
             if showCopyToast {
                 Label("Copied to clipboard", systemImage: "checkmark.circle.fill")
