@@ -168,16 +168,26 @@ struct ContentView: View {
     private var toolbar: some View {
         HStack(spacing: 12) {
             if let tab = appState.selectedTab {
-                Picker("Mode", selection: Binding(
-                    get: { tab.mode },
-                    set: { appState.updateMode(tab.id, mode: $0) }
-                )) {
+                // 自绘分段控件：系统 Picker(.segmented) 在 macOS 不渲染图标
+                HStack(spacing: 0) {
                     ForEach(JSONMode.allCases, id: \.self) { mode in
-                        Text(mode.title).tag(mode)
+                        Button {
+                            appState.updateMode(tab.id, mode: mode)
+                        } label: {
+                            Label(mode.title, systemImage: mode.icon)
+                                .font(.callout)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .frame(maxWidth: .infinity)
+                                .background(tab.mode == mode ? Color.accentColor : Color.clear)
+                                .foregroundStyle(tab.mode == mode ? Color.white : Color.primary)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
-                .pickerStyle(.segmented)
-                .frame(width: 140)
+                .background(.quaternary, in: RoundedRectangle(cornerRadius: 7))
+                .clipShape(RoundedRectangle(cornerRadius: 7))
+                .frame(width: 210)
             }
 
             Button {

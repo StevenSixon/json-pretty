@@ -6,6 +6,7 @@ enum JSONMode: String, Codable, CaseIterable {
     case compact
 
     var title: String { self == .pretty ? "Format" : "Compact" }
+    var icon: String { self == .pretty ? "text.alignleft" : "arrow.down.right.and.arrow.up.left" }
 }
 
 /// 单个 Tab 的全部状态
